@@ -43,4 +43,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Like::class, 'id_user');
     }
+
+    public function isAdmin()
+    {
+        return $this->role->name === 'admin';
+    }
 }
