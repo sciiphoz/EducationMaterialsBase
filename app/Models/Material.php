@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Material extends Model
 {
+    protected $primaryKey = 'id_material';
     public $incrementing = false;
     protected $keyType = 'string';
-    
+    public $timestamps = false;
+
     protected $fillable = [
-        'id',
+        'id_material',
         'name',
         'date',
         'rating',
@@ -26,17 +27,6 @@ class Material extends Model
         'isPrivate' => 'boolean',
         'date' => 'datetime'
     ];
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (empty($model->id)) {
-                $model->id = Str::uuid()->toString();
-            }
-        });
-    }
 
     public function user(): BelongsTo
     {
@@ -60,6 +50,14 @@ class Material extends Model
 
     public function tags(): BelongsToMany
     {
-        return $this->belongsToMany(Tags::class, 'material_tag', 'id_material', 'id_tag');
+        return $this->belongsToMany(Tag::class, 'material_tag', 'id_material', 'id_tag');
     }
+    public function canBeViewedBy(User $user = null): bool
+{
+    if (!$this->isPrivate) {
+        return true;
+    }
+    
+    return $user && ($user->id_user === $this->id_user || $user->isAdmin());
+}
 }

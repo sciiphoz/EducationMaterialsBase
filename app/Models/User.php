@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
+    protected $primaryKey = 'id_user';
+    public $timestamps = false;
+
     protected $fillable = [
         'login',
         'email',
@@ -15,14 +18,7 @@ class User extends Authenticatable
         'id_role'
     ];
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+    protected $hidden = ['password'];
 
     public function role(): BelongsTo
     {
@@ -44,7 +40,7 @@ class User extends Authenticatable
         return $this->hasMany(Like::class, 'id_user');
     }
 
-    public function isAdmin()
+    public function isAdmin(): bool
     {
         return $this->role->name === 'admin';
     }

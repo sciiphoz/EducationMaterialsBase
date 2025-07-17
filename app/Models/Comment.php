@@ -3,23 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Comment extends Model
+class Tag extends Model
 {
-    protected $fillable = [
-        'text',
-        'id_user',
-        'id_material'
-    ];
+    protected $primaryKey = 'id_tag';
+    public $timestamps = false;
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'id_user');
-    }
+    protected $fillable = ['name'];
 
-    public function material(): BelongsTo
+    public function materials(): BelongsToMany
     {
-        return $this->belongsTo(Material::class, 'id_material');
+        return $this->belongsToMany(Material::class, 'material_tag', 'id_tag', 'id_material');
     }
 }

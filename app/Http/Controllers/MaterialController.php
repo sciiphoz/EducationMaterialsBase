@@ -5,117 +5,90 @@ namespace App\Http\Controllers;
 use App\Models\Material;
 use App\Models\Tag;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class MaterialController extends Controller
 {
-    // Просмотр всех публичных материалов
     public function index()
     {
         $materials = Material::where('isPrivate', false)
-            ->with(['user', 'tags', 'sections'])
-            ->orderBy('date', 'desc')
+            ->with(['user', 'tags'])
+            ->latest()
             ->paginate(10);
 
-        return response()->json($materials);
+        return view('materials.index', compact('materials'));
     }
 
-    // Создание нового материала
+    public function show(Material $material)
+    {
+        // Проверяем доступ через модель
+        if (!$material->canBeViewedBy(auth()->user())) {
+            abort(403, 'Доступ запрещён');
+        }
+
+        return view('materials.show', [
+            'material' => $material->load('tags', 'sections', 'comments.user')
+        ]);
+    }
+
+    public function create()
+    {
+        $this->authorize('create', Material::class);
+        $tags = Tag::all();
+        return view('materials.create', compact('tags'));
+    }
+
     public function store(Request $request)
     {
+        $this->authorize('create', Material::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'isPrivate' => 'boolean',
             'tags' => 'array',
-            'tags.*' => 'exists:tags,id',
-            'sections' => 'required|array|min:1'
+            'tags.*' => 'exists:tags,id_tag',
         ]);
 
         $material = Material::create([
+            'id_material' => uniqid(),
             'name' => $validated['name'],
             'isPrivate' => $validated['isPrivate'] ?? false,
-            'id_user' => Auth::id(),
-            'date' => now()
+            'id_user' => auth()->id(),
+            'date' => now(),
         ]);
 
-        if (isset($validated['tags'])) {
-            $material->tags()->attach($validated['tags']);
-        }
+        $material->tags()->attach($validated['tags'] ?? []);
 
-        foreach ($validated['sections'] as $sectionData) {
-            $material->sections()->create($sectionData);
-        }
-
-        return response()->json($material->load('tags', 'sections'), 201);
+        return redirect()->route('materials.show', $material);
     }
 
-    // Просмотр конкретного материала
-    public function show($id)
+    public function edit(Material $material)
     {
-        $material = Material::with(['user', 'tags', 'sections', 'comments.user'])
-            ->findOrFail($id);
-
-        // Проверка доступа для приватных материалов
-        if ($material->isPrivate && $material->id_user !== Auth::id() && !Auth::user()->isAdmin()) {
-            abort(403, 'Доступ запрещен');
-        }
-
-        return response()->json($material);
+        $this->authorize('update', $material);
+        $tags = Tag::all();
+        return view('materials.edit', compact('material', 'tags'));
     }
 
-    // Обновление материала
-    public function update(Request $request, $id)
+    public function update(Request $request, Material $material)
     {
-        $material = Material::findOrFail($id);
-
-        // Проверка прав на редактирование
-        if ($material->id_user !== Auth::id() && !Auth::user()->isAdmin()) {
-            abort(403, 'Недостаточно прав');
-        }
+        $this->authorize('update', $material);
 
         $validated = $request->validate([
-            'name' => 'string|max:255',
+            'name' => 'required|string|max:255',
             'isPrivate' => 'boolean',
             'tags' => 'array',
-            'tags.*' => 'exists:tags,id'
+            'tags.*' => 'exists:tags,id_tag',
         ]);
 
         $material->update($validated);
+        $material->tags()->sync($validated['tags'] ?? []);
 
-        if (isset($validated['tags'])) {
-            $material->tags()->sync($validated['tags']);
-        }
-
-        return response()->json($material->fresh()->load('tags', 'sections'));
+        return redirect()->route('materials.show', $material);
     }
 
-    // Удаление материала
-    public function destroy($id)
+    public function destroy(Material $material)
     {
-        $material = Material::findOrFail($id);
-
-        // Только автор или админ может удалить
-        if ($material->id_user !== Auth::id() && !Auth::user()->isAdmin()) {
-            abort(403, 'Недостаточно прав');
-        }
-
+        $this->authorize('delete', $material);
         $material->delete();
-        return response()->json(null, 204);
-    }
-
-    // Поиск материалов по тегам
-    public function searchByTag($tagId)
-    {
-        $tag = Tag::findOrFail($tagId);
-        $materials = $tag->materials()
-            ->where(function($query) {
-                $query->where('isPrivate', false)
-                    ->orWhere('id_user', Auth::id());
-            })
-            ->with(['user', 'tags'])
-            ->paginate(10);
-
-        return response()->json($materials);
+        return redirect()->route('materials.index');
     }
 }

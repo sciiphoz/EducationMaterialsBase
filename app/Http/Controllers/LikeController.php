@@ -4,19 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Like;
 use App\Models\Material;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LikeController extends Controller
 {
-    // Добавление/удаление лайка
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function toggle($materialId)
     {
         $material = Material::findOrFail($materialId);
 
-        // Проверка доступа для приватных материалов
         if ($material->isPrivate && $material->id_user !== Auth::id()) {
-            abort(403, 'Доступ запрещен');
+            abort(403);
         }
 
         $like = Like::where('id_material', $materialId)
@@ -25,20 +27,13 @@ class LikeController extends Controller
 
         if ($like) {
             $like->delete();
-            $action = 'removed';
         } else {
             Like::create([
                 'id_material' => $materialId,
                 'id_user' => Auth::id()
             ]);
-            $action = 'added';
         }
 
-        $likesCount = $material->likes()->count();
-
-        return response()->json([
-            'action' => $action,
-            'likes_count' => $likesCount
-        ]);
+        return back();
     }
 }

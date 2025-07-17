@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Section extends Model
 {
+    protected $primaryKey = 'id_section';
+    public $timestamps = false;
+
     protected $fillable = [
         'text',
         'bytes',

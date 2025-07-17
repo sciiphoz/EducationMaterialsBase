@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tag extends Model
 {
+    protected $primaryKey = 'id_tag';
+    public $timestamps = false;
+
     protected $fillable = ['name'];
 
     public function materials(): BelongsToMany

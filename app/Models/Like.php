@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Like extends Model
 {
+    protected $primaryKey = 'id_like';
+    public $timestamps = false;
+
     protected $fillable = [
         'id_material',
         'id_user'
