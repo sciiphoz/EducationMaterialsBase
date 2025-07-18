@@ -20,13 +20,8 @@ class MaterialController extends Controller
 
     public function show(Material $material)
     {
-        // Проверяем доступ через модель
-        if (!$material->canBeViewedBy(auth()->user())) {
-            abort(403, 'Доступ запрещён');
-        }
-
         return view('materials.show', [
-            'material' => $material->load('tags', 'sections', 'comments.user')
+            'material' => $material->load('tag', 'comment.user')
         ]);
     }
 

@@ -17,6 +17,7 @@ class Material extends Model
     protected $fillable = [
         'id_material',
         'name',
+        'text',
         'date',
         'rating',
         'isPrivate',
@@ -33,11 +34,6 @@ class Material extends Model
         return $this->belongsTo(User::class, 'id_user');
     }
 
-    public function sections(): HasMany
-    {
-        return $this->hasMany(Section::class, 'id_material');
-    }
-
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class, 'id_material');
@@ -52,12 +48,4 @@ class Material extends Model
     {
         return $this->belongsToMany(Tag::class, 'material_tag', 'id_material', 'id_tag');
     }
-    public function canBeViewedBy(User $user = null): bool
-{
-    if (!$this->isPrivate) {
-        return true;
-    }
-    
-    return $user && ($user->id_user === $this->id_user || $user->isAdmin());
-}
 }

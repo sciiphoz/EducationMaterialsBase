@@ -6,55 +6,68 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('auth.register');
+        return view('pages.register');
     }
 
     public function register(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'login' => 'required|string|max:255|unique:users',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = User::create([
-            'login' => $validated['login'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'id_role' => 2, // Обычный пользователь
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        User::create([
+            'login' => $request->login,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'id_role' => 1, // Обычный пользователь
         ]);
 
-        Auth::login($user);
-        return redirect()->route('materials.index');
+        return redirect()->route('view.login');
     }
 
     public function showLoginForm()
     {
-        return view('auth.login');
+        return view('pages.login');
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'login' => 'required|string',
-            'password' => 'required|string',
+        $data = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
         ]);
 
-        if (Auth::attempt($credentials)) {
-            return redirect()->intended(route('materials.index'));
+        if(auth()->attempt($data)){
+            $request->session()->regenerate();
+            return redirect()->route('view.register');
         }
 
-        return back()->withErrors(['login' => 'Неверные данные']);
+        return back()->withErrors([
+            'email' => 'Ошибка авторизации'
+        ]);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
         Auth::logout();
-        return redirect()->route('materials.index');
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }
